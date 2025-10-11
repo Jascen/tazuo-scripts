@@ -3,7 +3,7 @@ Name: Lumerjack Assistant
 Description: Attempts to completely lumberjack every tree around you.
     Overweight behavior is configurable.
 Author: Tsai (Ultima: Memento)
-Version: v1.1
+Version: v1.2
 """
 
 import API
@@ -19,26 +19,29 @@ class OverweightBehavior:
 class UserOptions:
     Overweight_threshold = 60 # When your available weight is less than this value, execute Overweight behavior
     Overweight_behavior = OverweightBehavior.Move
-    Max_retries = 5 # Default to 15
+    Max_retries = 3 # Default to 15
     Clear_hands_before_move = False # In case you're a monk and need to access the rucksack
-    Use_Radius = True
-    Radius_Hue = 1260
-    Tree_To_Harvest_Hue = 1153
-    Harvested_Tree_Hue = 1152
+    Radius_Hue = 1260 # Set to `0` to disable
+    Tree_To_Harvest_Hue = 1152
+    Harvested_Tree_Hue = 1
+
+    @staticmethod
+    def GetIgnoredTreeGraphics():
+        # You can add to this if it keeps trying to chop things it shouldn't
+        return [
+            3223,
+        ]
 # Manual Configuration - End
-    
-    # You can add to this if it keeps trying to chop things it shouldn't
-    Ignored_Tree_Graphics = [
-        3223,
-    ]
 
 class Ids:
     log_id = 7136
     hatchet_id = 3907
     bark_fragment_id = 12687
+    stump_id = 0x0E59
+
 
 class Serials:
-    move_destination = None
+    move_destination = None # Set later
 
 
 Items_to_move = [
@@ -70,12 +73,25 @@ def GetNearbyTrees(radius, ignored_graphics):
     trees = []
     statics = API.GetStaticsInArea(API.Player.X - radius, API.Player.Y - radius, API.Player.X + radius, API.Player.Y + radius)
     
+    raw_trees = []
     for static in statics:
         if static.IsTree and static.Graphic not in ignored_graphics:
-            static.SetHue(UserOptions.Tree_To_Harvest_Hue)
-            trees.append(static)
+            raw_trees.append(static)
+
+    for tree in raw_trees:
+        if tree.Hue != UserOptions.Harvested_Tree_Hue:
+            tree.SetHue(UserOptions.Tree_To_Harvest_Hue)
+            trees.append(tree)
+        else:
+            HideStatics(tree.X, tree.Y)
 
     return trees
+
+
+def HideStatics(x, y):
+    for static in API.GetStaticsAt(x, y):
+        static.SetHue(UserOptions.Harvested_Tree_Hue)
+        static.Graphic = Ids.stump_id
 
 
 def MoveType(type_id):    
@@ -118,19 +134,19 @@ def Harvest(tree):
     API.UseObject(API.Found)
     if API.WaitForTarget("any", 1):
         API.Target(tree.X, tree.Y, tree.Z, tree.Graphic)
-        tree.SetHue(UserOptions.Harvested_Tree_Hue)
+        HideStatics(tree.X, tree.Y)
 
 
 def HarvestAroundYou():
     OverweightCheck()
 
     radius = 2
-    if UserOptions.Use_Radius:
+    if UserOptions.Radius_Hue:
         API.DisplayRange(radius, UserOptions.Radius_Hue)
     else:
         API.DisplayRange(0)
 
-    trees = GetNearbyTrees(radius, UserOptions.Ignored_Tree_Graphics)
+    trees = GetNearbyTrees(radius, UserOptions.GetIgnoredTreeGraphics())
     
     trees_remaining = len(trees)
     for index, tree in enumerate(trees):
@@ -139,6 +155,7 @@ def HarvestAroundYou():
         API.TrackingArrow(tree.X, tree.Y)
         CleanItOut(tree)
         API.TrackingArrow(-1, -1)
+
 
 def CleanItOut(tree):
     API.ClearJournal()
