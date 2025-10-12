@@ -3,7 +3,7 @@
 
 class PlayerUtils:
     @staticmethod
-    def ClearHands():
+    def clear_hands():
         if API.FindLayer("TwoHanded"):
             API.Pause(1)
             API.ClearLeftHand()
@@ -13,7 +13,7 @@ class PlayerUtils:
 
 
     @staticmethod
-    def HasCapacity(weight_required):
+    def has_capacity(weight_required):
         available = API.Player.WeightMax - API.Player.Weight
 
         return weight_required <= available
