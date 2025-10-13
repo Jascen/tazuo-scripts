@@ -14,90 +14,20 @@ Version: v1.0
 
 
 from decimal import Decimal
-import json
 import time
-from LegionPath import LegionPath
-import re
-
 # import API
 
 # import API
 
-# import importlib
+class _ButtonDefs:
+    def __init__(self, normal, pressed=None, hover=None):
+        self.normal = normal
+        self.pressed = pressed if pressed else normal
+        self.hover = hover if hover else normal
 
-LegionPath.addSubdirs()
-
-# import _Utils
-# import Math
-# import Color
-
-# importlib.reload(Util)
-# importlib.reload(Math)
-# importlib.reload(Color)
-
-# from Util import Util
-
-class Math:
-    centerX = 1323
-    mapWidth = 5120
-    centerY = 1624
-    mapHeight = 4096
-    
-    @staticmethod
-    def truncateDecimal(n1, d=1):
-        n = str(n1)
-        return n if "." not in n else n[: n.find(".") + d + 1]
-    
-    @staticmethod
-    def distanceBetween(m1, m2):
-        if not m1 or not m2:
-            return 999
-        return max(abs(m1.X - m2.X), abs(m1.Y - m2.Y))
-
-    @staticmethod
-    def convertToHex(obj):
-        if isinstance(obj, dict):
-            return {k: Math.convertToHex(v) for k, v in obj.items()}
-        elif isinstance(obj, list):
-            return [Math.convertToHex(elem) for elem in obj]
-        elif isinstance(obj, str) and re.fullmatch(r"0x[0-9a-fA-F]+", obj):
-            return int(obj, 16)
-        return obj
-    
-    @staticmethod
-    def tilesToLatLon(x, y):
-        degLon = (x - Math.centerX) * 360.0 / Math.mapWidth
-        degLat = (y - Math.centerY) * 360.0 / Math.mapHeight
-
-        if degLon > 180:
-            degLon = 360 - degLon
-            lonDir = "W"
-        else:
-            lonDir = "E"
-
-        if degLat > 180:
-            degLat = 360 - degLat
-            latDir = "N"
-        else:
-            latDir = "S"
-
-        lat = (int(degLat), (degLat - int(degLat)) * 60, latDir)
-        lon = (int(degLon), (degLon - int(degLon)) * 60, lonDir)
-        return lat, lon
-
-    @staticmethod
-    def latLonToTiles(degLat, minLat, latDir, degLon, minLon, lonDir):
-        totalLat = degLat + minLat / 60
-        if latDir == "N":
-            totalLat = 360 - totalLat
-
-        totalLon = degLon + minLon / 60
-        if lonDir == "W":
-            totalLon = 360 - totalLon
-
-        y = totalLat * Math.mapHeight / 360 + Math.centerY
-        x = totalLon * Math.mapWidth / 360 + Math.centerX
-        return int(x % Math.mapWidth), int(y % Math.mapHeight)
+class ButtonDefs:
+    Default = _ButtonDefs(2444, 2443)
+    Blank = _ButtonDefs(5547)
 class Color:
     defaultRed = "#b80028"
     defaultGreen = "#00b828"
@@ -106,56 +36,12 @@ class Color:
     defaultBlack = "#000000"
     defaultWhite = "#f8f8f8"
     defaultBorder = "#a87000"
-    
-    colors = [
-    ]
+# import API
 
-    @staticmethod
-    def convertFromHueToHex(hue):
-        isHueValid = Color.checkIfHueIsValid(hue)
-        if not isHueValid:
-            API.SysMsg("hue is not a valid UO Color")
-            API.Stop()
-        for color in Color.colors:
-            if color["hue"] == hue:
-                return color["hex"]
 
-    @staticmethod
-    def convertFromHexToHue(hex):
-        isHexValid = Color.checkIfHexIsValid(hex)
-        if not isHexValid:
-            API.SysMsg("hex is not a valid UO Color")
-            API.Stop()
-        for color in Color.colors:
-            if color["hex"].lower() == hex.lower():
-                return color["hue"]
-
-    @staticmethod
-    def checkIfHueIsValid(hue):
-        for color in Color.colors:
-            if color["hue"] == hue:
-                return True
-        return False
-
-    @staticmethod
-    def checkIfHexIsValid(hex):
-        if not hex.startswith("#"):
-            hex = f"#{hex}"
-        if not len(hex) == 7:
-            API.SysMsg("hex must be length 7")
-            API.Stop()
-        for color in Color.colors:
-            if color["hex"].lower() == hex.lower():
-                return True
-        return False
-
-with open(LegionPath.createPath("_Jsons\\button-types.json")) as f:
-    buttonTypesStr = json.load(f)
 
 
 class Gump:
-    buttonTypes = Math.convertToHex(buttonTypesStr)
-
     def __init__(self, width, height, onCloseCb=None, withStatus=True):
         self.width = width
         self.height = height
@@ -298,16 +184,15 @@ class Gump:
         self.gump.Add(checkbox)
         return checkbox
 
-    def addButton(self, label, x, y, type, callback, isDarkMode = False):
-        btnDef = Gump.buttonTypes.get(type, Gump.buttonTypes["default"])
+    def addButton(self, label, x, y, button_def, callback, isDarkMode = False):
         btn = API.CreateGumpButton(
-            "", 996, btnDef["normal"], btnDef["pressed"], btnDef["hover"]
+            "", 996, button_def.normal, button_def.pressed, button_def.hover
         )
         btn.SetX(x)
         btn.SetY(y)
         API.AddControlOnClick(btn, callback)
         self.gump.Add(btn)
-        if type == "default":
+        if button_def == ButtonDefs.Default:
             color = Color.defaultBlack
             if isDarkMode:
                 color = Color.defaultWhite
@@ -456,7 +341,6 @@ class Gump:
         elif position == "right":
             gump.SetX(gx + self.width)
             gump.SetY(gy)
-
 # import API
 
 class Hue:
@@ -513,7 +397,7 @@ class Radar:
         g.gump.CanCloseWithRightClick = False
         initial_y = 20
         g.addTtfLabel(label, 5, 0, width, initial_y, 20, Color.defaultWhite, "left", None)
-        g.addButton("Detect", g.width - 80, initial_y - 18, "default", self.detect_nodes)
+        g.addButton("Detect", g.width - 80, initial_y - 18, ButtonDefs.Default, self.detect_nodes)
         
         initial_y += 20
         # TODO: Border for buttons

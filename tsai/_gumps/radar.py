@@ -1,8 +1,8 @@
 # import API
 
-from nesci._Utils.Gump import Gump
-from nesci._Utils.Color import Color
-
+from tsai._data.button import ButtonDefs
+from tsai._data.color import Color
+from tsai._gumps._core import Gump
 from tsai._utils.logger import Logger
 
 
@@ -26,7 +26,7 @@ class Radar:
         g.gump.CanCloseWithRightClick = False
         initial_y = 20
         g.addTtfLabel(label, 5, 0, width, initial_y, 20, Color.defaultWhite, "left", None)
-        g.addButton("Detect", g.width - 80, initial_y - 18, "default", self.detect_nodes)
+        g.addButton("Detect", g.width - 80, initial_y - 18, ButtonDefs.Default, self.detect_nodes)
         
         initial_y += 20
         # TODO: Border for buttons
