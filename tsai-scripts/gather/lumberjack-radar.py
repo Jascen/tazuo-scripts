@@ -138,8 +138,8 @@ class UserOptions:
     Tree_To_Harvest_Hue = 1152
     Harvested_Tree_Hue = 1267
 
-    HOTKEY__DETECT_NODES = "Q"
-    HOTKEY__HARVEST_CLOSEST = "E"
+    HOTKEY__DETECT_NODES = "Q" # Use `None` to disable hotkey
+    HOTKEY__HARVEST_CLOSEST = "E" # Use `None` to disable hotkey
 
     @staticmethod
     def get_ignored_tree_graphics():
