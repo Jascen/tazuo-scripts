@@ -1,3 +1,17 @@
+"""
+Name: Lumerjack Radar Assistant
+Description: Detects trees within 6 tiles and hues them
+  - Clicking the `Detect` button or `Q` hotkey will re-hue nearby trees and add them to the Radar
+  - Clicking the button on the Radar will pathfind to and harvest the node
+  - `E` hotkey will harvest the closest unharvested node
+- Other notable features
+  - Automatically finds and equips hatchet from your backpack
+  - Move Logs/Bark Fragments to a container (usually placed on a pack animal) when overweight
+  - Can also stop execution by using War Mode
+Author: Tsai (Ultima: Memento)
+Version: v1.0
+"""
+
 # import API
 
 from tsai._gumps.radar import Radar
