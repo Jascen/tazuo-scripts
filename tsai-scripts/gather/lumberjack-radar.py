@@ -24,6 +24,21 @@ class LumberjackRadar(Radar):
         self.gump.CanCloseWithRightClick = False
 
 
+    def harvest_closest_node(self):
+        Logger.trace("[LumberjackRadar.harvest_closest_node]")
+        try:
+            radar_buttons = self.radar_buttons[:]
+            radar_buttons.sort(key=lambda tree: tree.entity.Distance if tree.entity and tree.entity.Distance and tree.entity else 10000) # Large number
+
+            for radar_button in radar_buttons:
+                if radar_button.button.Hue == UserOptions.Tree_To_Harvest_Hue:
+                    if radar_button.click_fn:
+                        radar_button.click_fn()
+                    return
+        except Exception as e:
+            Logger.error(str(repr(e)))
+
+
     def ensure_move_container(self):
         Logger.trace("[LumberjackRadar._ensure_move_container]")
         if UserOptions.Overweight_behavior != OverweightBehavior.Move or self.move_destination:
@@ -83,7 +98,7 @@ class LumberjackRadar(Radar):
                 continue
 
             # Track, mark, and make visible
-            radar_button.set_location(static.X, static.Y)
+            radar_button.set_entity(static)
             radar_button.set_node_hue(UserOptions.Harvested_Tree_Hue if static.Hue == UserOptions.Harvested_Tree_Hue else UserOptions.Tree_To_Harvest_Hue)
             radar_button.set_visible(True)
             radar_button.click_fn = lambda tree=static,button=radar_button: self._harvest(tree, button)
@@ -95,7 +110,10 @@ def main():
     radar.ensure_move_container()
     radar.overweight_check()
 
-    API.OnHotKey("Q", radar.detect_nodes)
+    if UserOptions.HOTKEY__DETECT_NODES:
+        API.OnHotKey(UserOptions.HOTKEY__DETECT_NODES, radar.detect_nodes)
+    if UserOptions.HOTKEY__HARVEST_CLOSEST:
+        API.OnHotKey(UserOptions.HOTKEY__HARVEST_CLOSEST, radar.harvest_closest_node)
     
     player = API.Player
     while not API.StopRequested and not player.IsDead:
@@ -120,11 +138,15 @@ class UserOptions:
     Tree_To_Harvest_Hue = 1152
     Harvested_Tree_Hue = 1267
 
+    HOTKEY__DETECT_NODES = "Q"
+    HOTKEY__HARVEST_CLOSEST = "E"
+
     @staticmethod
     def get_ignored_tree_graphics():
         # You can add to this if it keeps trying to chop things it shouldn't
         return [
             3223,
+            3230
         ]
 # Manual Configuration - End
 

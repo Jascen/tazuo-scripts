@@ -33,7 +33,7 @@ class Radar:
         player = API.Player
         for x in range(0 - self.radius, self.radius + 1):
             for y in range(0 - self.radius, self.radius + 1):
-                radar_button = RadarButton(player.X + x, player.Y + y, x, y, self.button_size)
+                radar_button = RadarButton(x, y, self.button_size)
                 radar_button.button.SetX((self.radius + x) * self.button_length)
                 radar_button.button.SetY(initial_y + (self.radius + y) * self.button_length)
 
@@ -54,10 +54,9 @@ class Radar:
         for x in range(0 - self.radius, self.radius + 1):
             for y in range(0 - self.radius, self.radius + 1):
                 button = self.radar_buttons[i]
+                button.entity = FakeEntity(API.Player.X + x, API.Player.Y + y)
                 button.click_fn = None
                 button.set_visible(False)
-                button.exact_x = API.Player.X + x
-                button.exact_y = API.Player.Y + y
                 i += 1
 
         self.detect_fn()
@@ -70,17 +69,16 @@ class Radar:
 
 
 class RadarButton:
-    def __init__(self, exact_x, exact_y, rel_x, rel_y, button_size):
+    def __init__(self, rel_x, rel_y, button_size):
         button = API.CreateSimpleButton("", button_size, button_size)
         button.IsVisible = False
         button.Alpha = 1
         button.SetBackgroundHue(1)
         self.button = button
         self.active = False
-        self.exact_x = exact_x
-        self.exact_y = exact_y
         self.rel_x = rel_x
         self.rel_y = rel_y
+        self.entity = None 
         self.click_fn = None
         self.node_hue = None
 
@@ -89,32 +87,14 @@ class RadarButton:
         Logger.debug("[RadarButton.button_clicked]")
         if self.click_fn:
             self.click_fn()
-    
-
-    def set_visible(self, visible):
-        Logger.trace("[RadarButton.set_visible]")
-        if self.button.IsVisible == visible:
-            return
-
-        self.button.IsVisible = visible
-
-
-    def set_location(self, x, y):
-        Logger.trace("[RadarButton.set_location]")
-        self.exact_x == x
-        self.exact_y == y
-
-
-    def set_node_hue(self, hue):
-        Logger.trace("[RadarButton.set_node_hue]")
-        self.node_hue = hue
-        if self.button.Hue != hue:
-            self.button.Hue = hue
 
 
     def check_match(self, x, y):
         # Logger.Trace("[RadarButton.check_match]")
-        if self.exact_x == x and self.exact_y == y:
+        if not self.entity:
+            return
+
+        if self.entity.X == x and self.entity.Y == y:
             if not self.active:
                 Logger.trace("Setting button to active")
                 self.active = True
@@ -133,3 +113,30 @@ class RadarButton:
 
         if self.button.Hue and not self.button.IsVisible:
             self.set_visible(True)
+
+
+    def set_entity(self, entity):
+        Logger.trace("[RadarButton.set_entity]")
+        self.entity = entity
+
+
+    def set_node_hue(self, hue):
+        Logger.trace("[RadarButton.set_node_hue]")
+        self.node_hue = hue
+        if self.button.Hue != hue:
+            self.button.Hue = hue
+
+
+    def set_visible(self, visible):
+        Logger.trace("[RadarButton.set_visible]")
+        if self.button.IsVisible == visible:
+            return
+
+        self.button.IsVisible = visible
+
+
+class FakeEntity:
+    def __init__(self, x, y):
+        self.X = x
+        self.Y = y
+        self.Distance = 10000
