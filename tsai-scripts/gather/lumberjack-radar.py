@@ -9,7 +9,8 @@ Description: Detects trees within 6 tiles and hues them
   - Move Logs/Bark Fragments to a container (usually placed on a pack animal) when overweight
   - Can also stop execution by using War Mode
 Author: Tsai (Ultima: Memento)
-Version: v1.0
+GitHub Source: Jascen/tazuo-scripts
+Version: v1.0.1
 """
 
 # import API
@@ -147,7 +148,6 @@ class OverweightBehavior:
 class UserOptions:
     Overweight_threshold = 60 # When your available weight is less than this value, execute Overweight behavior
     Overweight_behavior = OverweightBehavior.Move
-    # Max_retries = 3 # Default to 15
     Clear_hands_before_move = False # In case you're a monk and need to access the rucksack
     Tree_To_Harvest_Hue = 1152
     Harvested_Tree_Hue = 1267
