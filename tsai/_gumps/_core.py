@@ -8,6 +8,10 @@ from tsai._data.button import ButtonDefs
 
 
 class Gump:
+    """
+    Original credit to `GitHub/Nesci28`
+    """
+
     def __init__(self, width, height, onCloseCb=None, withStatus=True):
         self.width = width
         self.height = height
