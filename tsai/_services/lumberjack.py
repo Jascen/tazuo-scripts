@@ -6,11 +6,20 @@ from tsai._entities.generalitem import Hatchet, Log, BarkFragment
 
 
 class LumberjackService:
-    _types_to_move = [
-        Log.graphic,
-        BarkFragment.graphic
-    ]
-    _stump_graphic = 0x0E59
+    Types_to_move = None
+    Stump_graphic = None
+
+
+    @classmethod
+    def lazy_initialize(cls):
+        if cls.Types_to_move:
+            return
+
+        cls.Types_to_move = [
+            Log.graphic,
+            BarkFragment.graphic
+        ]
+        cls.Stump_graphic = 0x0E59
 
 
     @staticmethod
@@ -59,12 +68,14 @@ class LumberjackService:
 
     @classmethod
     def get_nearby_trees(cls, radius, ignored_graphics, ignore_stumps=True):
+        cls.lazy_initialize()
+
         Logger.debug("[LumberjackService.get_nearby_trees]")
         trees = []
         statics = API.GetStaticsInArea(API.Player.X - radius, API.Player.Y - radius, API.Player.X + radius, API.Player.Y + radius)
         
         for static in statics:
-            if (static.IsTree or (not ignore_stumps and static.Graphic == cls._stump_graphic)) \
+            if (static.IsTree or (not ignore_stumps and static.Graphic == cls.Stump_graphic)) \
                 and static.Graphic not in ignored_graphics:
                 trees.append(static)
 
@@ -112,17 +123,24 @@ class LumberjackService:
 
     @classmethod
     def hide_statics(cls, tree, hue, graphic=None):
+        cls.lazy_initialize()
+
         Logger.trace("[LumberjackAssistant.hide_statics]")
         for static in API.GetStaticsAt(tree.X, tree.Y):
             static.SetHue(hue)
-            static.Graphic = graphic if graphic != None else cls._stump_graphic
+            static.Graphic = graphic if graphic != None else cls.Stump_graphic
 
 
     @classmethod
-    def move_gathered(cls, destination, clear_hands_before_move):
+    def move_gathered(cls, destination, clear_hands_before_move, log_every_move=False):
+        cls.lazy_initialize()
+
         Logger.debug("[LumberjackService.move_gathered]")
 
-        for type_id in cls._types_to_move:
+        for type_id in cls.Types_to_move:
+            if log_every_move:
+                Logger.log(f"Looking to move type ({type_id})")
+
             # Ignore any already in the destination
             API.ClearIgnoreList()
             while API.FindType(type_id, destination):
@@ -135,6 +153,8 @@ class LumberjackService:
             API.Pause(1) # In case an action previously executed
             while API.FindType(type_id, API.Backpack):
                 serial = API.Found
+                if log_every_move:
+                    Logger.log(f"Moving ({serial}) to {destination}")
                 
                 API.QueueMoveItem(serial, destination)
                 API.IgnoreObject(serial)
