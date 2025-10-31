@@ -82,7 +82,8 @@ class LumberjackAssistant:
             Logger.error("Failed to find storage bag.")
             return
         
-        API.SysMsg(f"Your overweight container: {bag_item.Name} ({bag_item.Serial})")
+        if UserOptions.Enable_Diagnostic_Logging:
+            API.SysMsg(f"Your overweight container: {bag_item.Name} ({bag_item.Serial})")
         
         self.move_destination = serial
 
