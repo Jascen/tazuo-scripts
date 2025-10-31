@@ -7,7 +7,7 @@ GitHub Source: Jascen/tazuo-scripts
 Version: v1.4.1
 """
 
-import API
+# import API
 
 class OverweightBehavior:
     Stop = 0 # Stop the script
@@ -22,7 +22,7 @@ class UserOptions:
     Clear_hands_before_move = False # Memento: In case you're a monk and need to access the rucksack
     Radius_Hue = 0 # Set to `0` to disable
     Tree_To_Harvest_Hue = 1152
-    Harvested_Tree_Hue = 1
+    Harvested_Tree_Hue = 1267
     
     # If your server converts Logs to Boards by axeing them, you can enable this
     Axe_Logs_Before_Moving_Items = False
