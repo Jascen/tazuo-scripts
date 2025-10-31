@@ -2,7 +2,7 @@
 
 from tsai._utils.logger import Logger
 from tsai._utils.player import PlayerUtils
-from tsai._entities.generalitem import Hatchet, Log, BarkFragment
+from tsai._entities.generalitem import Hatchet, Log, BarkFragment, Board
 
 
 class LumberjackService:
@@ -17,7 +17,8 @@ class LumberjackService:
 
         cls.Types_to_move = [
             Log.graphic,
-            BarkFragment.graphic
+            BarkFragment.graphic,
+            Board.graphic
         ]
         cls.Stump_graphic = 0x0E59
 
