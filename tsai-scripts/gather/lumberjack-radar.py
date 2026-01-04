@@ -49,7 +49,7 @@ class LumberjackRadar(Radar):
             radar_buttons.sort(key=lambda tree: tree.entity.Distance if tree.entity and tree.entity.Distance and tree.entity else 10000) # Large number
 
             for radar_button in radar_buttons:
-                if radar_button.button.Hue == UserOptions.Tree_To_Harvest_Hue:
+                if radar_button.button.BackgroundHue == UserOptions.Tree_To_Harvest_Hue:
                     if radar_button.click_fn:
                         radar_button.click_fn()
                     return

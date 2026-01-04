@@ -37,7 +37,7 @@ class Radar:
                 radar_button.button.SetX((self.radius + x) * self.button_length)
                 radar_button.button.SetY(initial_y + (self.radius + y) * self.button_length)
 
-                API.AddControlOnClick(radar_button.button, radar_button.button_clicked) # Add click handler
+                API.Gumps.AddControlOnClick(radar_button.button, radar_button.button_clicked) # Add click handler
 
                 self.radar_buttons.append(radar_button)
                 g.gump.Add(radar_button.button) # Add to gump
@@ -70,9 +70,9 @@ class Radar:
 
 class RadarButton:
     def __init__(self, rel_x, rel_y, button_size):
-        button = API.CreateSimpleButton("", button_size, button_size)
+        button = API.Gumps.CreateSimpleButton("", button_size, button_size)
         button.IsVisible = False
-        button.Alpha = 1
+        button.SetAlpha(1)
         button.SetBackgroundHue(1)
         self.button = button
         self.active = False
@@ -98,7 +98,7 @@ class RadarButton:
             if not self.active:
                 Logger.trace("Setting button to active")
                 self.active = True
-                self.button.Hue = 32 # Red
+                self.button.SetBackgroundHue(32) # Red
         elif self.active:
             self.active = False
             if not self.node_hue:
@@ -107,11 +107,11 @@ class RadarButton:
                 return
 
             Logger.trace("Re-coloring button")
-            self.button.Hue = self.node_hue
+            self.button.SetBackgroundHue(self.node_hue)
         else:
             return
 
-        if self.button.Hue and not self.button.IsVisible:
+        if self.button.BackgroundHue and not self.button.IsVisible:
             self.set_visible(True)
 
 
@@ -123,8 +123,8 @@ class RadarButton:
     def set_node_hue(self, hue):
         Logger.trace("[RadarButton.set_node_hue]")
         self.node_hue = hue
-        if self.button.Hue != hue:
-            self.button.Hue = hue
+        if self.button.BackgroundHue != hue:
+            self.button.SetBackgroundHue(hue)
 
 
     def set_visible(self, visible):

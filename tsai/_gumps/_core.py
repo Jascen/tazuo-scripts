@@ -18,7 +18,7 @@ class Gump:
         self.onCloseCb = onCloseCb
         self.withStatus = withStatus
 
-        self.gump = API.CreateGump(True, True)
+        self.gump = API.Gumps.CreateGump(True, True)
         self.subGumps = []
         self.bg = None
         self._running = True
@@ -35,7 +35,7 @@ class Gump:
         self._setBackground()
 
         if withStatus:
-            self.statusLabel = API.CreateGumpLabel("Ready.")
+            self.statusLabel = API.Gumps.CreateGumpLabel("Ready.")
             self.statusLabel.SetX(10)
             self.statusLabel.SetY(self.height - 30)
             self.gump.Add(self.statusLabel)
@@ -44,7 +44,7 @@ class Gump:
         self._checkInterval = 0.1
 
     def create(self):
-        API.AddGump(self.gump)
+        API.Gumps.AddGump(self.gump)
 
     def tick(self):
         if not self._running or self.gump.IsDisposed:
@@ -89,7 +89,7 @@ class Gump:
     def createSubGump(self, width, height, position="bottom", withStatus=False, alwaysVisible=True):
         gump = Gump(width, height, withStatus=withStatus)
         self._setSubGumpPosition(gump.gump, width, height, position)
-        API.AddGump(gump.gump)
+        API.Gumps.AddGump(gump.gump)
         self.subGumps.append((gump, position, alwaysVisible))
         return gump
 
@@ -135,7 +135,7 @@ class Gump:
         return tabGump
 
     def addColorBox(self, x, y, height, width, colorHex=Color.defaultBlack, opacity=1):
-        colorBox = API.CreateGumpColorBox(opacity, colorHex)
+        colorBox = API.Gumps.CreateGumpColorBox(opacity, colorHex)
         colorBox.SetX(x)
         colorBox.SetY(y)
         colorBox.SetWidth(width)
@@ -144,23 +144,23 @@ class Gump:
         return colorBox        
 
     def addCheckbox(self, label, x, y, isChecked, callback, hue=996):
-        checkbox = API.CreateGumpCheckbox(
+        checkbox = API.Gumps.CreateGumpCheckbox(
             label, hue, isChecked
         )
         checkbox.SetX(x)
         checkbox.SetY(y)
         if callback:
-            API.AddControlOnClick(checkbox, callback)
+            API.Gumps.AddControlOnClick(checkbox, callback)
         self.gump.Add(checkbox)
         return checkbox
 
     def addButton(self, label, x, y, button_def, callback, isDarkMode = False):
-        btn = API.CreateGumpButton(
+        btn = API.Gumps.CreateGumpButton(
             "", 996, button_def.normal, button_def.pressed, button_def.hover
         )
         btn.SetX(x)
         btn.SetY(y)
-        API.AddControlOnClick(btn, callback)
+        API.Gumps.AddControlOnClick(btn, callback)
         self.gump.Add(btn)
         if button_def == ButtonDefs.Default:
             color = Color.defaultBlack
@@ -168,17 +168,17 @@ class Gump:
                 color = Color.defaultWhite
             labelObj = self.addTtfLabel(label, x, y, 63, 23, 12, color, "center", callback)
         else:
-            labelObj = API.CreateGumpLabel(label)
+            labelObj = API.Gumps.CreateGumpLabel(label)
             labelObj.SetY(y)
             labelObj.SetX(x)
-        API.AddControlOnClick(labelObj, callback)
+        API.Gumps.AddControlOnClick(labelObj, callback)
         self.gump.Add(labelObj)
         return btn
 
     def addTtfLabel(
         self, label, x, y, width, height, fontSize, fontColorHex, position, callback
     ):
-        ttfLabel = API.CreateGumpTTFLabel(
+        ttfLabel = API.Gumps.CreateGumpTTFLabel(
             label, fontSize, fontColorHex, maxWidth=width, aligned=position
         )
         centerY = y + int(height / 2) - 6
@@ -189,7 +189,7 @@ class Gump:
         return ttfLabel
 
     def addLabel(self, text, x, y, hue=None):
-        label = API.CreateGumpLabel(text)
+        label = API.Gumps.CreateGumpLabel(text)
         label.SetX(x)
         label.SetY(y)
         if hue:
@@ -209,14 +209,14 @@ class Gump:
             (x - 2, y, 2, height),
             (x + width, y, 2, height),
         ]:
-            border = API.CreateGumpColorBox(1, borderColor)
+            border = API.Gumps.CreateGumpColorBox(1, borderColor)
             border.SetX(bx)
             border.SetY(by)
             border.SetWidth(bw)
             border.SetHeight(bh)
             self.gump.Add(border)
             borders.append(border)
-        textbox = API.CreateGumpTextBox(str(clampedValue), width, height, False)
+        textbox = API.Gumps.CreateGumpTextBox(str(clampedValue), width, height, False)
         textbox.SetX(x)
         textbox.SetY(y)
         self.gump.Add(textbox)
@@ -251,7 +251,7 @@ class Gump:
 
     def _setBackground(self):
         if not self.bg:
-            self.bg = API.CreateGumpColorBox(0.75, Color.defaultBlack)
+            self.bg = API.Gumps.CreateGumpColorBox(0.75, Color.defaultBlack)
             self.gump.Add(self.bg)
         self.bg.SetWidth(self.width - 10)
         self.bg.SetHeight(self.height - 10)
@@ -285,7 +285,7 @@ class Gump:
         )
         borders = []
         for bx, by, bw, bh in positions:
-            border = API.CreateGumpColorBox(1, frameColor)
+            border = API.Gumps.CreateGumpColorBox(1, frameColor)
             border.SetX(bx)
             border.SetY(by)
             border.SetWidth(bw)
