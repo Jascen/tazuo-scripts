@@ -13,12 +13,40 @@ Description: Detects trees within 6 tiles and hues them.
   - Can also stop execution by using War Mode
 Author: Tsai (Ultima: Memento)
 GitHub Source: Jascen/tazuo-scripts
-Version: v1.0.1
+Version: v1.1
 """
-
 
 from decimal import Decimal
 import time
+
+
+class OverweightBehavior:
+    Stop = 0 # Stop the script
+    Move = 1 # Move the boards/logs to a bag or pack animal
+
+
+# Manual Configuration - Begin
+# Logger.DEBUG = True
+# Logger.TRACE = True
+class UserOptions:
+    Overweight_threshold = 60 # When your available weight is less than this value, execute Overweight behavior
+    Overweight_behavior = OverweightBehavior.Move
+    Clear_hands_before_move = False # In case you're a monk and need to access the rucksack
+    Tree_To_Harvest_Hue = 1152
+    Harvested_Tree_Hue = 1267
+
+    HOTKEY__DETECT_NODES = "Q" # Use `None` to disable hotkey
+    HOTKEY__HARVEST_CLOSEST = "E" # Use `None` to disable hotkey
+
+    @staticmethod
+    def get_ignored_tree_graphics():
+        # You can add to this if it keeps trying to chop things it shouldn't
+        return [
+            3223,
+            3230
+        ]
+# Manual Configuration - End
+
 # import API
 
 # import API
@@ -56,7 +84,7 @@ class Gump:
         self.onCloseCb = onCloseCb
         self.withStatus = withStatus
 
-        self.gump = API.CreateGump(True, True)
+        self.gump = API.Gumps.CreateGump(True, True)
         self.subGumps = []
         self.bg = None
         self._running = True
@@ -73,7 +101,7 @@ class Gump:
         self._setBackground()
 
         if withStatus:
-            self.statusLabel = API.CreateGumpLabel("Ready.")
+            self.statusLabel = API.Gumps.CreateGumpLabel("Ready.")
             self.statusLabel.SetX(10)
             self.statusLabel.SetY(self.height - 30)
             self.gump.Add(self.statusLabel)
@@ -82,7 +110,7 @@ class Gump:
         self._checkInterval = 0.1
 
     def create(self):
-        API.AddGump(self.gump)
+        API.Gumps.AddGump(self.gump)
 
     def tick(self):
         if not self._running or self.gump.IsDisposed:
@@ -127,7 +155,7 @@ class Gump:
     def createSubGump(self, width, height, position="bottom", withStatus=False, alwaysVisible=True):
         gump = Gump(width, height, withStatus=withStatus)
         self._setSubGumpPosition(gump.gump, width, height, position)
-        API.AddGump(gump.gump)
+        API.Gumps.AddGump(gump.gump)
         self.subGumps.append((gump, position, alwaysVisible))
         return gump
 
@@ -173,7 +201,7 @@ class Gump:
         return tabGump
 
     def addColorBox(self, x, y, height, width, colorHex=Color.defaultBlack, opacity=1):
-        colorBox = API.CreateGumpColorBox(opacity, colorHex)
+        colorBox = API.Gumps.CreateGumpColorBox(opacity, colorHex)
         colorBox.SetX(x)
         colorBox.SetY(y)
         colorBox.SetWidth(width)
@@ -182,23 +210,23 @@ class Gump:
         return colorBox        
 
     def addCheckbox(self, label, x, y, isChecked, callback, hue=996):
-        checkbox = API.CreateGumpCheckbox(
+        checkbox = API.Gumps.CreateGumpCheckbox(
             label, hue, isChecked
         )
         checkbox.SetX(x)
         checkbox.SetY(y)
         if callback:
-            API.AddControlOnClick(checkbox, callback)
+            API.Gumps.AddControlOnClick(checkbox, callback)
         self.gump.Add(checkbox)
         return checkbox
 
     def addButton(self, label, x, y, button_def, callback, isDarkMode = False):
-        btn = API.CreateGumpButton(
+        btn = API.Gumps.CreateGumpButton(
             "", 996, button_def.normal, button_def.pressed, button_def.hover
         )
         btn.SetX(x)
         btn.SetY(y)
-        API.AddControlOnClick(btn, callback)
+        API.Gumps.AddControlOnClick(btn, callback)
         self.gump.Add(btn)
         if button_def == ButtonDefs.Default:
             color = Color.defaultBlack
@@ -206,17 +234,17 @@ class Gump:
                 color = Color.defaultWhite
             labelObj = self.addTtfLabel(label, x, y, 63, 23, 12, color, "center", callback)
         else:
-            labelObj = API.CreateGumpLabel(label)
+            labelObj = API.Gumps.CreateGumpLabel(label)
             labelObj.SetY(y)
             labelObj.SetX(x)
-        API.AddControlOnClick(labelObj, callback)
+        API.Gumps.AddControlOnClick(labelObj, callback)
         self.gump.Add(labelObj)
         return btn
 
     def addTtfLabel(
         self, label, x, y, width, height, fontSize, fontColorHex, position, callback
     ):
-        ttfLabel = API.CreateGumpTTFLabel(
+        ttfLabel = API.Gumps.CreateGumpTTFLabel(
             label, fontSize, fontColorHex, maxWidth=width, aligned=position
         )
         centerY = y + int(height / 2) - 6
@@ -227,7 +255,7 @@ class Gump:
         return ttfLabel
 
     def addLabel(self, text, x, y, hue=None):
-        label = API.CreateGumpLabel(text)
+        label = API.Gumps.CreateGumpLabel(text)
         label.SetX(x)
         label.SetY(y)
         if hue:
@@ -247,14 +275,14 @@ class Gump:
             (x - 2, y, 2, height),
             (x + width, y, 2, height),
         ]:
-            border = API.CreateGumpColorBox(1, borderColor)
+            border = API.Gumps.CreateGumpColorBox(1, borderColor)
             border.SetX(bx)
             border.SetY(by)
             border.SetWidth(bw)
             border.SetHeight(bh)
             self.gump.Add(border)
             borders.append(border)
-        textbox = API.CreateGumpTextBox(str(clampedValue), width, height, False)
+        textbox = API.Gumps.CreateGumpTextBox(str(clampedValue), width, height, False)
         textbox.SetX(x)
         textbox.SetY(y)
         self.gump.Add(textbox)
@@ -289,7 +317,7 @@ class Gump:
 
     def _setBackground(self):
         if not self.bg:
-            self.bg = API.CreateGumpColorBox(0.75, Color.defaultBlack)
+            self.bg = API.Gumps.CreateGumpColorBox(0.75, Color.defaultBlack)
             self.gump.Add(self.bg)
         self.bg.SetWidth(self.width - 10)
         self.bg.SetHeight(self.height - 10)
@@ -323,7 +351,7 @@ class Gump:
         )
         borders = []
         for bx, by, bw, bh in positions:
-            border = API.CreateGumpColorBox(1, frameColor)
+            border = API.Gumps.CreateGumpColorBox(1, frameColor)
             border.SetX(bx)
             border.SetY(by)
             border.SetWidth(bw)
@@ -416,7 +444,7 @@ class Radar:
                 radar_button.button.SetX((self.radius + x) * self.button_length)
                 radar_button.button.SetY(initial_y + (self.radius + y) * self.button_length)
 
-                API.AddControlOnClick(radar_button.button, radar_button.button_clicked) # Add click handler
+                API.Gumps.AddControlOnClick(radar_button.button, radar_button.button_clicked) # Add click handler
 
                 self.radar_buttons.append(radar_button)
                 g.gump.Add(radar_button.button) # Add to gump
@@ -449,9 +477,9 @@ class Radar:
 
 class RadarButton:
     def __init__(self, rel_x, rel_y, button_size):
-        button = API.CreateSimpleButton("", button_size, button_size)
+        button = API.Gumps.CreateSimpleButton("", button_size, button_size)
         button.IsVisible = False
-        button.Alpha = 1
+        button.SetAlpha(1)
         button.SetBackgroundHue(1)
         self.button = button
         self.active = False
@@ -477,7 +505,7 @@ class RadarButton:
             if not self.active:
                 Logger.trace("Setting button to active")
                 self.active = True
-                self.button.Hue = 32 # Red
+                self.button.SetBackgroundHue(32) # Red
         elif self.active:
             self.active = False
             if not self.node_hue:
@@ -486,11 +514,11 @@ class RadarButton:
                 return
 
             Logger.trace("Re-coloring button")
-            self.button.Hue = self.node_hue
+            self.button.SetBackgroundHue(self.node_hue)
         else:
             return
 
-        if self.button.Hue and not self.button.IsVisible:
+        if self.button.BackgroundHue and not self.button.IsVisible:
             self.set_visible(True)
 
 
@@ -502,8 +530,8 @@ class RadarButton:
     def set_node_hue(self, hue):
         Logger.trace("[RadarButton.set_node_hue]")
         self.node_hue = hue
-        if self.button.Hue != hue:
-            self.button.Hue = hue
+        if self.button.BackgroundHue != hue:
+            self.button.SetBackgroundHue(hue)
 
 
     def set_visible(self, visible):
@@ -560,11 +588,21 @@ Hatchet        = GeneralItem(3907, "hatchet")
 
 
 class LumberjackService:
-    _types_to_move = [
-        Log.graphic,
-        BarkFragment.graphic
-    ]
-    _stump_graphic = 0x0E59
+    Types_to_move = None
+    Stump_graphic = None
+
+
+    @classmethod
+    def lazy_initialize(cls):
+        if cls.Types_to_move:
+            return
+
+        cls.Types_to_move = [
+            Log.graphic,
+            BarkFragment.graphic,
+            Board.graphic
+        ]
+        cls.Stump_graphic = 0x0E59
 
 
     @staticmethod
@@ -613,12 +651,14 @@ class LumberjackService:
 
     @classmethod
     def get_nearby_trees(cls, radius, ignored_graphics, ignore_stumps=True):
+        cls.lazy_initialize()
+
         Logger.debug("[LumberjackService.get_nearby_trees]")
         trees = []
         statics = API.GetStaticsInArea(API.Player.X - radius, API.Player.Y - radius, API.Player.X + radius, API.Player.Y + radius)
         
         for static in statics:
-            if (static.IsTree or (not ignore_stumps and static.Graphic == cls._stump_graphic)) \
+            if (static.IsTree or (not ignore_stumps and static.Graphic == cls.Stump_graphic)) \
                 and static.Graphic not in ignored_graphics:
                 trees.append(static)
 
@@ -666,17 +706,24 @@ class LumberjackService:
 
     @classmethod
     def hide_statics(cls, tree, hue, graphic=None):
+        cls.lazy_initialize()
+
         Logger.trace("[LumberjackAssistant.hide_statics]")
         for static in API.GetStaticsAt(tree.X, tree.Y):
             static.SetHue(hue)
-            static.Graphic = graphic if graphic != None else cls._stump_graphic
+            static.Graphic = graphic if graphic != None else cls.Stump_graphic
 
 
     @classmethod
-    def move_gathered(cls, destination, clear_hands_before_move):
+    def move_gathered(cls, destination, clear_hands_before_move, log_every_move=False):
+        cls.lazy_initialize()
+
         Logger.debug("[LumberjackService.move_gathered]")
 
-        for type_id in cls._types_to_move:
+        for type_id in cls.Types_to_move:
+            if log_every_move:
+                Logger.log(f"Looking to move type ({type_id})")
+
             # Ignore any already in the destination
             API.ClearIgnoreList()
             while API.FindType(type_id, destination):
@@ -689,6 +736,8 @@ class LumberjackService:
             API.Pause(1) # In case an action previously executed
             while API.FindType(type_id, API.Backpack):
                 serial = API.Found
+                if log_every_move:
+                    Logger.log(f"Moving ({serial}) to {destination}")
                 
                 API.QueueMoveItem(serial, destination)
                 API.IgnoreObject(serial)
@@ -756,7 +805,7 @@ class LumberjackRadar(Radar):
             radar_buttons.sort(key=lambda tree: tree.entity.Distance if tree.entity and tree.entity.Distance and tree.entity else 10000) # Large number
 
             for radar_button in radar_buttons:
-                if radar_button.button.Hue == UserOptions.Tree_To_Harvest_Hue:
+                if radar_button.button.BackgroundHue == UserOptions.Tree_To_Harvest_Hue:
                     if radar_button.click_fn:
                         radar_button.click_fn()
                     return
@@ -798,7 +847,7 @@ class LumberjackRadar(Radar):
     def _get_nearby_trees(self):
         Logger.debug("[LumberjackRadar._get_nearby_trees]")
         for static in LumberjackService.filter_nearby_trees(self.radius, self.ignored_tree_graphics, UserOptions.Tree_To_Harvest_Hue, UserOptions.Harvested_Tree_Hue, self._mark_tree_processed, False):
-            self._mark_tree_processed(static)
+            self._mark_tree_processed(static, False)
 
 
     def _harvest(self, tree, radar_button):
@@ -814,8 +863,9 @@ class LumberjackRadar(Radar):
             API.TrackingArrow(-1, -1)
 
 
-    def _mark_tree_processed(self, static):
+    def _mark_tree_processed(self, static, hide=True):
         Logger.debug("[LumberjackRadar._mark_tree_processed]")
+
         x = static.X - API.Player.X
         y = static.Y - API.Player.Y
         for radar_button in self.radar_buttons:
@@ -827,6 +877,9 @@ class LumberjackRadar(Radar):
             radar_button.set_node_hue(UserOptions.Harvested_Tree_Hue if static.Hue == UserOptions.Harvested_Tree_Hue else UserOptions.Tree_To_Harvest_Hue)
             radar_button.set_visible(True)
             radar_button.click_fn = lambda tree=static,button=radar_button: self._harvest(tree, button)
+
+        if hide:
+            LumberjackService.hide_statics(static, UserOptions.Harvested_Tree_Hue)
 
 
 def main():
@@ -845,34 +898,6 @@ def main():
         radar.sync_position(player.X, player.Y)
         API.ProcessCallbacks()
         API.Pause(0.25)
-
-
-class OverweightBehavior:
-    Stop = 0 # Stop the script
-    Move = 1 # Move the boards/logs to a bag or pack animal
-
-
-# Manual Configuration - Begin
-# Logger.DEBUG = True
-# Logger.TRACE = True
-class UserOptions:
-    Overweight_threshold = 60 # When your available weight is less than this value, execute Overweight behavior
-    Overweight_behavior = OverweightBehavior.Move
-    Clear_hands_before_move = False # In case you're a monk and need to access the rucksack
-    Tree_To_Harvest_Hue = 1152
-    Harvested_Tree_Hue = 1267
-
-    HOTKEY__DETECT_NODES = "Q" # Use `None` to disable hotkey
-    HOTKEY__HARVEST_CLOSEST = "E" # Use `None` to disable hotkey
-
-    @staticmethod
-    def get_ignored_tree_graphics():
-        # You can add to this if it keeps trying to chop things it shouldn't
-        return [
-            3223,
-            3230
-        ]
-# Manual Configuration - End
 
 
 main()
