@@ -13,8 +13,36 @@ Description: Detects trees within 6 tiles and hues them.
   - Can also stop execution by using War Mode
 Author: Tsai (Ultima: Memento)
 GitHub Source: Jascen/tazuo-scripts
-Version: v1.0.1
+Version: v1.1
 """
+
+
+class OverweightBehavior:
+    Stop = 0 # Stop the script
+    Move = 1 # Move the boards/logs to a bag or pack animal
+
+
+# Manual Configuration - Begin
+# Logger.DEBUG = True
+# Logger.TRACE = True
+class UserOptions:
+    Overweight_threshold = 60 # When your available weight is less than this value, execute Overweight behavior
+    Overweight_behavior = OverweightBehavior.Move
+    Clear_hands_before_move = False # In case you're a monk and need to access the rucksack
+    Tree_To_Harvest_Hue = 1152
+    Harvested_Tree_Hue = 1267
+
+    HOTKEY__DETECT_NODES = "Q" # Use `None` to disable hotkey
+    HOTKEY__HARVEST_CLOSEST = "E" # Use `None` to disable hotkey
+
+    @staticmethod
+    def get_ignored_tree_graphics():
+        # You can add to this if it keeps trying to chop things it shouldn't
+        return [
+            3223,
+            3230
+        ]
+# Manual Configuration - End
 
 # import API
 
@@ -91,7 +119,7 @@ class LumberjackRadar(Radar):
     def _get_nearby_trees(self):
         Logger.debug("[LumberjackRadar._get_nearby_trees]")
         for static in LumberjackService.filter_nearby_trees(self.radius, self.ignored_tree_graphics, UserOptions.Tree_To_Harvest_Hue, UserOptions.Harvested_Tree_Hue, self._mark_tree_processed, False):
-            self._mark_tree_processed(static)
+            self._mark_tree_processed(static, False)
 
 
     def _harvest(self, tree, radar_button):
@@ -107,8 +135,9 @@ class LumberjackRadar(Radar):
             API.TrackingArrow(-1, -1)
 
 
-    def _mark_tree_processed(self, static):
+    def _mark_tree_processed(self, static, hide=True):
         Logger.debug("[LumberjackRadar._mark_tree_processed]")
+
         x = static.X - API.Player.X
         y = static.Y - API.Player.Y
         for radar_button in self.radar_buttons:
@@ -120,6 +149,9 @@ class LumberjackRadar(Radar):
             radar_button.set_node_hue(UserOptions.Harvested_Tree_Hue if static.Hue == UserOptions.Harvested_Tree_Hue else UserOptions.Tree_To_Harvest_Hue)
             radar_button.set_visible(True)
             radar_button.click_fn = lambda tree=static,button=radar_button: self._harvest(tree, button)
+
+        if hide:
+            LumberjackService.hide_statics(static, UserOptions.Harvested_Tree_Hue)
 
 
 def main():
@@ -138,34 +170,6 @@ def main():
         radar.sync_position(player.X, player.Y)
         API.ProcessCallbacks()
         API.Pause(0.25)
-
-
-class OverweightBehavior:
-    Stop = 0 # Stop the script
-    Move = 1 # Move the boards/logs to a bag or pack animal
-
-
-# Manual Configuration - Begin
-# Logger.DEBUG = True
-# Logger.TRACE = True
-class UserOptions:
-    Overweight_threshold = 60 # When your available weight is less than this value, execute Overweight behavior
-    Overweight_behavior = OverweightBehavior.Move
-    Clear_hands_before_move = False # In case you're a monk and need to access the rucksack
-    Tree_To_Harvest_Hue = 1152
-    Harvested_Tree_Hue = 1267
-
-    HOTKEY__DETECT_NODES = "Q" # Use `None` to disable hotkey
-    HOTKEY__HARVEST_CLOSEST = "E" # Use `None` to disable hotkey
-
-    @staticmethod
-    def get_ignored_tree_graphics():
-        # You can add to this if it keeps trying to chop things it shouldn't
-        return [
-            3223,
-            3230
-        ]
-# Manual Configuration - End
 
 
 main()
