@@ -76,15 +76,31 @@ class LumberjackService:
         statics = API.GetStaticsInArea(API.Player.X - radius, API.Player.Y - radius, API.Player.X + radius, API.Player.Y + radius)
         
         for static in statics:
-            if (static.IsTree or (not ignore_stumps and static.Graphic == cls.Stump_graphic)) \
-                and static.Graphic not in ignored_graphics:
+            if cls.is_valid_tree(static, ignored_graphics, ignore_stumps):
                 trees.append(static)
 
         return trees
 
 
+    @classmethod
+    def is_valid_tree(cls, static, ignored_graphics, ignore_stumps=True):
+        cls.lazy_initialize()
+
+        Logger.trace("[LumberjackService.is_valid_tree]")
+        return (static.IsTree or (not ignore_stumps and static.Graphic == cls.Stump_graphic)) \
+            and static.Graphic not in ignored_graphics
+
+
     @staticmethod
-    def harvest(tree, auto_pathfind=True, min_distance=2):
+    def pathfind_to(tree, min_distance):
+        Logger.trace("Too far. Pathfinding to tree.")
+        API.Pathfind(tree.X, tree.Y, tree.Z, min_distance)
+        while API.Pathfinding():
+            API.Pause(0.25)
+
+
+    @classmethod
+    def harvest(cls, tree, auto_pathfind=True, min_distance=2):
         Logger.trace("[LumberjackService.harvest]")
         
         if not API.FindLayer("TwoHanded"):
@@ -99,16 +115,12 @@ class LumberjackService:
             API.Pause(0.5)
             return False
         
-        tree = tree
         if min_distance < tree.Distance:
             if not auto_pathfind:
                 Logger.error("Too far and pathfinding was disabled.")
                 return False
             
-            Logger.debug("Too far. Pathfinding to tree.")
-            API.Pathfind(tree.X, tree.Y, tree.Z, min_distance)
-            while API.Pathfinding():
-                API.Pause(0.25)
+            cls.pathfind_to(tree, min_distance)
         
         API.Pause(1)
         API.UseObject(API.Found)
