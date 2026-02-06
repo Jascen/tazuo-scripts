@@ -1,3 +1,4 @@
+
 """
 Name: Tsai's Lumberjack Radar Assistant
 
@@ -6,14 +7,14 @@ Name: Tsai's Lumberjack Radar Assistant
 Description: Detects trees within 6 tiles and hues them.
   - Clicking the `Detect` button or `Q` hotkey will re-hue nearby trees and add them to the Radar
   - Clicking the button on the Radar will pathfind to and harvest the node
-  - `E` hotkey will harvest the closest unharvested node
+  - `E` hotkey will harvest the closest unharvested node (including Rich Trees)
 - Other notable features
   - Automatically finds and equips hatchet from your backpack
   - Move Logs/Bark Fragments to a container (usually placed on a pack animal) when overweight
   - Can also stop execution by using War Mode
 Author: Tsai (Ultima: Memento)
 GitHub Source: Jascen/tazuo-scripts
-Version: v1.1
+Version: v1.2
 """
 
 from decimal import Decimal
@@ -658,15 +659,31 @@ class LumberjackService:
         statics = API.GetStaticsInArea(API.Player.X - radius, API.Player.Y - radius, API.Player.X + radius, API.Player.Y + radius)
         
         for static in statics:
-            if (static.IsTree or (not ignore_stumps and static.Graphic == cls.Stump_graphic)) \
-                and static.Graphic not in ignored_graphics:
+            if cls.is_valid_tree(static, ignored_graphics, ignore_stumps):
                 trees.append(static)
 
         return trees
 
 
+    @classmethod
+    def is_valid_tree(cls, static, ignored_graphics, ignore_stumps=True):
+        cls.lazy_initialize()
+
+        Logger.trace("[LumberjackService.is_valid_tree]")
+        return (static.IsTree or (not ignore_stumps and static.Graphic == cls.Stump_graphic)) \
+            and static.Graphic not in ignored_graphics
+
+
     @staticmethod
-    def harvest(tree, auto_pathfind=True, min_distance=2):
+    def pathfind_to(tree, min_distance):
+        Logger.trace("Too far. Pathfinding to tree.")
+        API.Pathfind(tree.X, tree.Y, tree.Z, min_distance)
+        while API.Pathfinding():
+            API.Pause(0.25)
+
+
+    @classmethod
+    def harvest(cls, tree, auto_pathfind=True, min_distance=2):
         Logger.trace("[LumberjackService.harvest]")
         
         if not API.FindLayer("TwoHanded"):
@@ -681,16 +698,12 @@ class LumberjackService:
             API.Pause(0.5)
             return False
         
-        tree = tree
         if min_distance < tree.Distance:
             if not auto_pathfind:
                 Logger.error("Too far and pathfinding was disabled.")
                 return False
             
-            Logger.debug("Too far. Pathfinding to tree.")
-            API.Pathfind(tree.X, tree.Y, tree.Z, min_distance)
-            while API.Pathfinding():
-                API.Pause(0.25)
+            cls.pathfind_to(tree, min_distance)
         
         API.Pause(1)
         API.UseObject(API.Found)
@@ -782,7 +795,7 @@ class AliasUtils:
         return serial
 
 
-LumberjackSparkle = GeneralItem(14138, "a rich tree")
+LumberjackSparkle = GeneralItem(0x373A, "a rich tree")
 
 
 class LumberjackRadar(Radar):
@@ -801,6 +814,10 @@ class LumberjackRadar(Radar):
     def harvest_closest_node(self):
         Logger.trace("[LumberjackRadar.harvest_closest_node]")
         try:
+            # Sparkles count as a node
+            if self._harvest_closest_sparkle():
+                return
+
             radar_buttons = self.radar_buttons[:]
             radar_buttons.sort(key=lambda tree: tree.entity.Distance if tree.entity and tree.entity.Distance and tree.entity else 10000) # Large number
 
@@ -811,6 +828,24 @@ class LumberjackRadar(Radar):
                     return
         except Exception as e:
             Logger.error(str(repr(e)))
+    
+    
+    def _harvest_closest_sparkle(self):
+        Logger.trace("[LumberjackRadar._harvest_closest_sparkle]")
+        items = API.GetItemsOnGround(10, LumberjackSparkle.graphic)
+        if not items:
+            return False
+
+        for item in items:
+            self.overweight_check()
+            if not LumberjackService.ensure_hatchet():
+                return
+            
+            LumberjackService.pathfind_to(item, 2)
+            API.UseObject(item.Serial)
+            API.Pause(1)
+        
+        return True
 
 
     def ensure_move_container(self):
@@ -837,7 +872,7 @@ class LumberjackRadar(Radar):
             return
 
         if UserOptions.Overweight_behavior == OverweightBehavior.Move:
-            Logger.debug("Overweight. Moving items!")
+            Logger.log("Overweight. Moving items!")
             LumberjackService.move_gathered(self.move_destination, UserOptions.Clear_hands_before_move)
         else:
             Logger.error("Overweight. Moving items!")
@@ -850,7 +885,7 @@ class LumberjackRadar(Radar):
             self._mark_tree_processed(static, False)
 
 
-    def _harvest(self, tree, radar_button):
+    def _harvest(self, tree, radar_button=None):
         Logger.debug("[LumberjackRadar._harvest]")
         self.overweight_check()
         if not LumberjackService.ensure_hatchet():
@@ -859,7 +894,8 @@ class LumberjackRadar(Radar):
         API.TrackingArrow(tree.X, tree.Y)
         if LumberjackService.harvest(tree):
             LumberjackService.hide_statics(tree, UserOptions.Harvested_Tree_Hue)
-            radar_button.set_node_hue(UserOptions.Harvested_Tree_Hue)
+            if radar_button:
+                radar_button.set_node_hue(UserOptions.Harvested_Tree_Hue)
             API.TrackingArrow(-1, -1)
 
 
