@@ -177,6 +177,6 @@ class LumberjackService:
                 if log_every_move:
                     Logger.log(f"Moving ({serial}) to {destination}")
                 
-                API.QueueMoveItem(serial, destination)
+                API.QueueMoveItem(serial, destination, 9999)
                 API.IgnoreObject(serial)
                 #API.Pause(0.750)
