@@ -14,7 +14,7 @@ Description: Detects trees within 6 tiles and hues them.
   - Can also stop execution by using War Mode
 Author: Tsai (Ultima: Memento)
 GitHub Source: Jascen/tazuo-scripts
-Version: v1.2
+Version: v1.3
 """
 
 from decimal import Decimal
@@ -591,6 +591,7 @@ Hatchet        = GeneralItem(3907, "hatchet")
 class LumberjackService:
     Types_to_move = None
     Stump_graphic = None
+    Paperdoll_Hatchet_Graphics = None
 
 
     @classmethod
@@ -604,20 +605,34 @@ class LumberjackService:
             Board.graphic
         ]
         cls.Stump_graphic = 0x0E59
+        cls.Paperdoll_Hatchet_Graphics = [
+            Hatchet.graphic,
+            25747, # Monster hatchet graphic
+        ]
 
 
-    @staticmethod
-    def ensure_hatchet():
+    @classmethod
+    def is_hatchet_in_hand(cls):
+        Logger.trace("[LumberjackService.is_hatchet_in_hand]")
+
+        if API.FindLayer("TwoHanded"):
+            Logger.trace("Found item in hand")
+            item = API.FindItem(API.Found)
+            if item and item.Graphic in cls.Paperdoll_Hatchet_Graphics:
+                return True
+
+            Logger.trace("Item was not a Hatchet")
+
+        return False
+
+
+    @classmethod
+    def ensure_hatchet(cls):
         Logger.trace("[LumberjackService.ensure_hatchet]")
 
         while not API.Player.IsDead:
-            if API.FindLayer("TwoHanded"):
-                Logger.trace("Found item in hand")
-                item = API.FindItem(API.Found)
-                if item and item.Graphic == Hatchet.graphic:
-                    return True
-
-                Logger.trace("Item was not a Hatchet")
+            if cls.is_hatchet_in_hand():
+                return True
 
             found = API.FindType(Hatchet.graphic, API.Backpack)
             if found:
@@ -685,16 +700,9 @@ class LumberjackService:
     @classmethod
     def harvest(cls, tree, auto_pathfind=True, min_distance=2):
         Logger.trace("[LumberjackService.harvest]")
-        
-        if not API.FindLayer("TwoHanded"):
-            Logger.debug("No axe was found")
-            return False
 
-        item = API.FindItem(API.Found)
-
-        if item.Graphic != Hatchet.graphic:
-            # Something else is in the hand
-            Logger.error("Item in hand is not a Hatchet!")
+        if not cls.is_hatchet_in_hand():
+            Logger.debug("No axe was found in hand")
             API.Pause(0.5)
             return False
         
@@ -752,7 +760,7 @@ class LumberjackService:
                 if log_every_move:
                     Logger.log(f"Moving ({serial}) to {destination}")
                 
-                API.QueueMoveItem(serial, destination)
+                API.QueueMoveItem(serial, destination, 9999)
                 API.IgnoreObject(serial)
                 #API.Pause(0.750)
 # import API
@@ -793,6 +801,11 @@ class AliasUtils:
             API.SavePersistentVar(alias, str(serial), scope)
 
         return serial
+
+
+    @classmethod
+    def remove(cls, alias, scope):
+        API.RemovePersistentVar(alias, scope)
 
 
 LumberjackSparkle = GeneralItem(0x373A, "a rich tree")
@@ -853,17 +866,20 @@ class LumberjackRadar(Radar):
         if UserOptions.Overweight_behavior != OverweightBehavior.Move or self.move_destination:
             return
         
-        bag = AliasUtils.get_value_or_prompt("$wood_bag", API.PersistentVar.Char, "Target a container for your logs.")
-        if not bag:
-            Logger.error("No bag was specified.")
-            return
+        while not API.StopRequested:
+            bag = AliasUtils.get_value_or_prompt("$wood_bag", API.PersistentVar.Char, "Target a container for your logs.")
+            if not bag:
+                Logger.error("No bag was specified.")
+                continue
 
-        serial = int(bag)
-        if not API.FindItem(serial):
-            Logger.error("Failed to find storage bag.")
+            serial = int(bag)
+            if not API.FindItem(serial):
+                Logger.error("Failed to find storage bag.")
+                AliasUtils.remove("$wood_bag", API.PersistentVar.Char)
+                continue
+            
+            self.move_destination = serial
             return
-        
-        self.move_destination = serial
 
 
     def overweight_check(self):
