@@ -13,7 +13,7 @@ Description: Detects trees within 6 tiles and hues them.
   - Can also stop execution by using War Mode
 Author: Tsai (Ultima: Memento)
 GitHub Source: Jascen/tazuo-scripts
-Version: v1.2
+Version: v1.3
 """
 
 
