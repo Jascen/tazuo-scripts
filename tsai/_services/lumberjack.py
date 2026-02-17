@@ -8,6 +8,7 @@ from tsai._entities.generalitem import Hatchet, Log, BarkFragment, Board
 class LumberjackService:
     Types_to_move = None
     Stump_graphic = None
+    Paperdoll_Hatchet_Graphics = None
 
 
     @classmethod
@@ -21,20 +22,34 @@ class LumberjackService:
             Board.graphic
         ]
         cls.Stump_graphic = 0x0E59
+        cls.Paperdoll_Hatchet_Graphics = [
+            Hatchet.graphic,
+            25747, # Monster hatchet graphic
+        ]
 
 
-    @staticmethod
-    def ensure_hatchet():
+    @classmethod
+    def is_hatchet_in_hand(cls):
+        Logger.trace("[LumberjackService.is_hatchet_in_hand]")
+
+        if API.FindLayer("TwoHanded"):
+            Logger.trace("Found item in hand")
+            item = API.FindItem(API.Found)
+            if item and item.Graphic in cls.Paperdoll_Hatchet_Graphics:
+                return True
+
+            Logger.trace("Item was not a Hatchet")
+
+        return False
+
+
+    @classmethod
+    def ensure_hatchet(cls):
         Logger.trace("[LumberjackService.ensure_hatchet]")
 
         while not API.Player.IsDead:
-            if API.FindLayer("TwoHanded"):
-                Logger.trace("Found item in hand")
-                item = API.FindItem(API.Found)
-                if item and item.Graphic == Hatchet.graphic:
-                    return True
-
-                Logger.trace("Item was not a Hatchet")
+            if cls.is_hatchet_in_hand():
+                return True
 
             found = API.FindType(Hatchet.graphic, API.Backpack)
             if found:
@@ -102,16 +117,9 @@ class LumberjackService:
     @classmethod
     def harvest(cls, tree, auto_pathfind=True, min_distance=2):
         Logger.trace("[LumberjackService.harvest]")
-        
-        if not API.FindLayer("TwoHanded"):
-            Logger.debug("No axe was found")
-            return False
 
-        item = API.FindItem(API.Found)
-
-        if item.Graphic != Hatchet.graphic:
-            # Something else is in the hand
-            Logger.error("Item in hand is not a Hatchet!")
+        if not cls.is_hatchet_in_hand():
+            Logger.debug("No axe was found in hand")
             API.Pause(0.5)
             return False
         
