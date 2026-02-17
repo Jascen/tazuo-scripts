@@ -112,17 +112,20 @@ class LumberjackRadar(Radar):
         if UserOptions.Overweight_behavior != OverweightBehavior.Move or self.move_destination:
             return
         
-        bag = AliasUtils.get_value_or_prompt("$wood_bag", API.PersistentVar.Char, "Target a container for your logs.")
-        if not bag:
-            Logger.error("No bag was specified.")
-            return
+        while not API.StopRequested:
+            bag = AliasUtils.get_value_or_prompt("$wood_bag", API.PersistentVar.Char, "Target a container for your logs.")
+            if not bag:
+                Logger.error("No bag was specified.")
+                continue
 
-        serial = int(bag)
-        if not API.FindItem(serial):
-            Logger.error("Failed to find storage bag.")
+            serial = int(bag)
+            if not API.FindItem(serial):
+                Logger.error("Failed to find storage bag.")
+                AliasUtils.remove("$wood_bag", API.PersistentVar.Char)
+                continue
+            
+            self.move_destination = serial
             return
-        
-        self.move_destination = serial
 
 
     def overweight_check(self):
